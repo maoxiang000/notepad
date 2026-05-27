@@ -1,0 +1,548 @@
+
+html_content = '''<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>双人云端记事板</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 24px;
+            font-size: 1.8rem;
+            letter-spacing: 2px;
+        }
+        
+        .status-bar {
+            text-align: center;
+            margin-bottom: 16px;
+            font-size: 0.85rem;
+            color: #888;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .status-bar .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ccc;
+            display: inline-block;
+            transition: background 0.3s;
+        }
+        
+        .status-bar .dot.connected { background: #52c41a; }
+        .status-bar .dot.connecting { background: #faad14; animation: pulse 1s infinite; }
+        .status-bar .dot.error { background: #ff4d4f; }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+        
+        .input-area {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        
+        @media (max-width: 600px) {
+            .input-area { grid-template-columns: 1fr; }
+            h1 { font-size: 1.4rem; }
+        }
+        
+        .input-card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+            transition: transform 0.2s;
+        }
+        
+        .input-card:hover { transform: translateY(-2px); }
+        .input-card.male { border-top: 4px solid #4a90e2; }
+        .input-card.female { border-top: 4px solid #e24a90; }
+        
+        .input-card h3 {
+            margin-bottom: 12px;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .input-card.male h3 { color: #4a90e2; }
+        .input-card.female h3 { color: #e24a90; }
+        
+        .icon { font-size: 1.4rem; }
+        
+        textarea {
+            width: 100%;
+            min-height: 80px;
+            border: 2px solid #e8e8e8;
+            border-radius: 12px;
+            padding: 12px;
+            font-size: 1rem;
+            resize: vertical;
+            font-family: inherit;
+            transition: border-color 0.2s;
+        }
+        
+        .input-card.male textarea:focus { outline: none; border-color: #4a90e2; }
+        .input-card.female textarea:focus { outline: none; border-color: #e24a90; }
+        
+        .btn {
+            margin-top: 12px;
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+        
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none !important; }
+        
+        .btn-male { background: linear-gradient(135deg, #4a90e2, #357abd); }
+        .btn-male:hover:not(:disabled) { background: linear-gradient(135deg, #357abd, #2a6299); transform: scale(1.02); }
+        
+        .btn-female { background: linear-gradient(135deg, #e24a90, #c73a7a); }
+        .btn-female:hover:not(:disabled) { background: linear-gradient(135deg, #c73a7a, #a82d65); transform: scale(1.02); }
+        
+        .board-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        
+        .board-header h2 {
+            font-size: 1.2rem;
+            color: #555;
+        }
+        
+        .clear-btn {
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: background 0.2s;
+        }
+        
+        .clear-btn:hover { background: #ee5a5a; }
+        .clear-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .notes-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .note-item {
+            background: white;
+            border-radius: 14px;
+            padding: 18px 20px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+            position: relative;
+            animation: slideIn 0.3s ease;
+            transition: transform 0.2s;
+        }
+        
+        .note-item:hover { transform: translateX(4px); }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .note-item.male { border-left: 5px solid #4a90e2; }
+        .note-item.female { border-left: 5px solid #e24a90; }
+        
+        .note-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .note-author {
+            font-weight: 700;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .note-item.male .note-author { color: #4a90e2; }
+        .note-item.female .note-author { color: #e24a90; }
+        
+        .note-time {
+            font-size: 0.75rem;
+            color: #999;
+        }
+        
+        .note-text {
+            color: #444;
+            line-height: 1.6;
+            font-size: 1rem;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        
+        .note-delete {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: none;
+            border: none;
+            color: #ccc;
+            cursor: pointer;
+            font-size: 1.2rem;
+            padding: 4px 8px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        
+        .note-delete:hover { color: #ff6b6b; background: #fff0f0; }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #aaa;
+        }
+        
+        .empty-state .icon { font-size: 3rem; margin-bottom: 12px; }
+        
+        .stats {
+            text-align: center;
+            margin-bottom: 16px;
+            color: #888;
+            font-size: 0.9rem;
+        }
+        
+        .loading-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255,255,255,0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            transition: opacity 0.3s;
+        }
+        
+        .loading-overlay.hidden { opacity: 0; pointer-events: none; }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #e8e8e8;
+            border-top-color: #4a90e2;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 12px;
+        }
+        
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+        <p>正在连接云端...</p>
+    </div>
+    
+    <div class="container">
+        <h1>📝 双人云端记事板</h1>
+        
+        <div class="status-bar" id="statusBar">
+            <span class="dot" id="statusDot"></span>
+            <span id="statusText">正在连接...</span>
+        </div>
+        
+        <div class="input-area">
+            <div class="input-card male">
+                <h3><span class="icon">👨</span>男生留言</h3>
+                <textarea id="maleInput" placeholder="写下你想记录的事情..."></textarea>
+                <button class="btn btn-male" id="maleBtn" onclick="addNote('male')">发送</button>
+            </div>
+            
+            <div class="input-card female">
+                <h3><span class="icon">👩</span>女生留言</h3>
+                <textarea id="femaleInput" placeholder="写下你想记录的事情..."></textarea>
+                <button class="btn btn-female" id="femaleBtn" onclick="addNote('female')">发送</button>
+            </div>
+        </div>
+        
+        <div class="board-header">
+            <h2>📋 记录列表</h2>
+            <button class="clear-btn" id="clearBtn" onclick="clearAll()">清空全部</button>
+        </div>
+        
+        <div class="stats" id="stats"></div>
+        
+        <div class="notes-list" id="notesList">
+            <div class="empty-state">
+                <div class="icon">📭</div>
+                <p>还没有记录，快写点什么吧~</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ========================
+        // 第 1 步：填入你的 Supabase 配置
+        // ========================
+        const SUPABASE_URL = 'https://YOUR_PROJECT_ID.supabase.co';
+        const SUPABASE_KEY = 'YOUR_ANON_PUBLIC_KEY';
+        
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        
+        let isConnected = false;
+        let allNotes = [];
+        let pollTimer = null;
+        
+        // ========================
+        // 状态管理
+        // ========================
+        function setStatus(type, text) {
+            const dot = document.getElementById('statusDot');
+            const txt = document.getElementById('statusText');
+            dot.className = 'dot ' + type;
+            txt.textContent = text;
+            isConnected = (type === 'connected');
+            
+            const btns = document.querySelectorAll('.btn, .clear-btn');
+            btns.forEach(btn => btn.disabled = !isConnected);
+        }
+        
+        function hideLoading() {
+            document.getElementById('loadingOverlay').classList.add('hidden');
+        }
+        
+        // ========================
+        // 从云端拉取数据（轮询）
+        // ========================
+        async function fetchNotes() {
+            try {
+                const { data, error } = await supabase
+                    .from('notes')
+                    .select('*')
+                    .order('created_at', { ascending: false })
+                    .limit(100);
+                
+                if (error) throw error;
+                
+                allNotes = (data || []).map(item => ({
+                    id: item.id,
+                    gender: item.gender,
+                    text: item.text,
+                    time: item.time
+                }));
+                
+                renderNotes(allNotes);
+                setStatus('connected', '已连接云端 · 自动同步中');
+            } catch (err) {
+                console.error('拉取失败:', err);
+                setStatus('error', '同步失败: ' + (err.message || '网络异常'));
+            }
+        }
+        
+        // ========================
+        // 初始化
+        // ========================
+        async function init() {
+            try {
+                await fetchNotes();
+                hideLoading();
+                // 每 5 秒自动同步一次
+                pollTimer = setInterval(fetchNotes, 5000);
+            } catch (err) {
+                setStatus('error', '连接失败: ' + (err.message || '请检查配置'));
+                hideLoading();
+            }
+        }
+        
+        // ========================
+        // 添加记录
+        // ========================
+        async function addNote(gender) {
+            if (!isConnected) return;
+            
+            const inputId = gender === 'male' ? 'maleInput' : 'femaleInput';
+            const textarea = document.getElementById(inputId);
+            const text = textarea.value.trim();
+            
+            if (!text) {
+                textarea.style.borderColor = '#ff6b6b';
+                setTimeout(() => textarea.style.borderColor = '', 300);
+                return;
+            }
+            
+            const btn = document.getElementById(gender === 'male' ? 'maleBtn' : 'femaleBtn');
+            btn.disabled = true;
+            btn.textContent = '发送中...';
+            
+            try {
+                const { error } = await supabase
+                    .from('notes')
+                    .insert([{
+                        gender: gender,
+                        text: text,
+                        time: new Date().toLocaleString('zh-CN', {
+                            month: 'short', day: 'numeric',
+                            hour: '2-digit', minute: '2-digit'
+                        })
+                    }]);
+                
+                if (error) throw error;
+                
+                textarea.value = '';
+                await fetchNotes(); // 立即刷新
+            } catch (err) {
+                alert('发送失败: ' + (err.message || '请检查网络'));
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '发送';
+            }
+        }
+        
+        // ========================
+        // 删除单条
+        // ========================
+        async function deleteNote(id) {
+            if (!isConnected) return;
+            if (!confirm('确定要删除这条记录吗？')) return;
+            
+            try {
+                const { error } = await supabase
+                    .from('notes')
+                    .delete()
+                    .eq('id', id);
+                
+                if (error) throw error;
+                await fetchNotes();
+            } catch (err) {
+                alert('删除失败: ' + (err.message || '请检查网络'));
+            }
+        }
+        
+        // ========================
+        // 清空全部
+        // ========================
+        async function clearAll() {
+            if (!isConnected) return;
+            if (allNotes.length === 0) return;
+            
+            if (!confirm(`确定要清空全部 ${allNotes.length} 条记录吗？此操作不可恢复！`)) return;
+            
+            const btn = document.getElementById('clearBtn');
+            btn.disabled = true;
+            btn.textContent = '清空中...';
+            
+            try {
+                // 逐条删除（Supabase 免费版批量删除限制较少，但逐条更稳）
+                for (const note of allNotes) {
+                    await supabase.from('notes').delete().eq('id', note.id);
+                }
+                await fetchNotes();
+            } catch (err) {
+                alert('清空失败: ' + (err.message || '请检查网络'));
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '清空全部';
+            }
+        }
+        
+        // ========================
+        // 渲染列表
+        // ========================
+        function renderNotes(notes) {
+            const list = document.getElementById('notesList');
+            const stats = document.getElementById('stats');
+            
+            const maleCount = notes.filter(n => n.gender === 'male').length;
+            const femaleCount = notes.filter(n => n.gender === 'female').length;
+            
+            stats.textContent = notes.length > 0
+                ? `共 ${notes.length} 条 · 👨 ${maleCount} 条 · 👩 ${femaleCount} 条`
+                : '';
+            
+            if (!notes.length) {
+                list.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">📭</div>
+                        <p>还没有记录，快写点什么吧~</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            list.innerHTML = notes.map(note => {
+                const isMale = note.gender === 'male';
+                return `
+                    <div class="note-item ${note.gender}">
+                        <button class="note-delete" onclick="deleteNote('${note.id}')">×</button>
+                        <div class="note-header">
+                            <span class="note-author">
+                                ${isMale ? '👨' : '👩'} ${isMale ? '男生' : '女生'}
+                            </span>
+                            <span class="note-time">${note.time}</span>
+                        </div>
+                        <div class="note-text">${escapeHtml(note.text)}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // 快捷键
+        document.getElementById('maleInput').addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') addNote('male');
+        });
+        document.getElementById('femaleInput').addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') addNote('female');
+        });
+        
+        // 启动
+        init();
+    </script>
+</body>
+</html>'''
+
+with open('/mnt/agents/output/notepad_supabase.html', 'w', encoding='utf-8') as f:
+    f.write(html_content)
+
+print("Supabase 云端版已生成")
