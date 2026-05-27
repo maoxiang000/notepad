@@ -1,45 +1,52 @@
-
-html_content = '''<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>双人云端记事板</title>
+    <title>💕 我们的小黑板</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+            background: linear-gradient(135deg, #faf6f1 0%, #f5ebe0 100%);
             min-height: 100vh;
             padding: 20px;
         }
-        
+
         .container {
             max-width: 800px;
             margin: 0 auto;
         }
-        
+
         h1 {
             text-align: center;
-            color: #333;
-            margin-bottom: 24px;
+            color: #8b6f47;
+            margin-bottom: 8px;
             font-size: 1.8rem;
             letter-spacing: 2px;
+            font-weight: 700;
         }
-        
+
+        .subtitle {
+            text-align: center;
+            color: #b8a08a;
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+        }
+
         .status-bar {
             text-align: center;
             margin-bottom: 16px;
             font-size: 0.85rem;
-            color: #888;
+            color: #a09080;
             display: flex;
             justify-content: center;
             align-items: center;
             gap: 8px;
         }
-        
+
         .status-bar .dot {
             width: 8px;
             height: 8px;
@@ -48,40 +55,41 @@ html_content = '''<!DOCTYPE html>
             display: inline-block;
             transition: background 0.3s;
         }
-        
-        .status-bar .dot.connected { background: #52c41a; }
+
+        .status-bar .dot.connected { background: #52c41a; box-shadow: 0 0 6px #52c41a80; }
         .status-bar .dot.connecting { background: #faad14; animation: pulse 1s infinite; }
         .status-bar .dot.error { background: #ff4d4f; }
-        
+
         @keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.4; }
         }
-        
+
         .input-area {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 16px;
             margin-bottom: 24px;
         }
-        
+
         @media (max-width: 600px) {
             .input-area { grid-template-columns: 1fr; }
-            h1 { font-size: 1.4rem; }
+            h1 { font-size: 1.5rem; }
         }
-        
+
         .input-card {
             background: white;
-            border-radius: 16px;
+            border-radius: 20px;
             padding: 20px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+            box-shadow: 0 4px 20px rgba(139,111,71,0.08);
             transition: transform 0.2s;
+            position: relative;
         }
-        
+
         .input-card:hover { transform: translateY(-2px); }
-        .input-card.male { border-top: 4px solid #4a90e2; }
-        .input-card.female { border-top: 4px solid #e24a90; }
-        
+        .input-card.male { border-top: 4px solid #7eb8da; }
+        .input-card.female { border-top: 4px solid #e8a0bf; }
+
         .input-card h3 {
             margin-bottom: 12px;
             font-size: 1.1rem;
@@ -89,33 +97,54 @@ html_content = '''<!DOCTYPE html>
             align-items: center;
             gap: 8px;
         }
-        
-        .input-card.male h3 { color: #4a90e2; }
-        .input-card.female h3 { color: #e24a90; }
-        
+
+        .input-card.male h3 { color: #5a9bc7; }
+        .input-card.female h3 { color: #d4809e; }
+
         .icon { font-size: 1.4rem; }
-        
+
+        .emoji-picker {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+
+        .emoji-btn {
+            background: #f5f0eb;
+            border: 2px solid transparent;
+            border-radius: 10px;
+            padding: 4px 8px;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: all 0.2s;
+        }
+
+        .emoji-btn:hover { background: #ebe5de; transform: scale(1.1); }
+        .emoji-btn.selected { border-color: #8b6f47; background: #faf6f1; }
+
         textarea {
             width: 100%;
             min-height: 80px;
-            border: 2px solid #e8e8e8;
-            border-radius: 12px;
+            border: 2px solid #ece5dc;
+            border-radius: 14px;
             padding: 12px;
             font-size: 1rem;
             resize: vertical;
             font-family: inherit;
             transition: border-color 0.2s;
+            background: #fdfcfa;
         }
-        
-        .input-card.male textarea:focus { outline: none; border-color: #4a90e2; }
-        .input-card.female textarea:focus { outline: none; border-color: #e24a90; }
-        
+
+        .input-card.male textarea:focus { outline: none; border-color: #7eb8da; }
+        .input-card.female textarea:focus { outline: none; border-color: #e8a0bf; }
+
         .btn {
             margin-top: 12px;
             width: 100%;
             padding: 12px;
             border: none;
-            border-radius: 12px;
+            border-radius: 14px;
             font-size: 1rem;
             font-weight: 600;
             color: white;
@@ -123,74 +152,127 @@ html_content = '''<!DOCTYPE html>
             transition: all 0.2s;
             position: relative;
         }
-        
+
         .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none !important; }
-        
-        .btn-male { background: linear-gradient(135deg, #4a90e2, #357abd); }
-        .btn-male:hover:not(:disabled) { background: linear-gradient(135deg, #357abd, #2a6299); transform: scale(1.02); }
-        
-        .btn-female { background: linear-gradient(135deg, #e24a90, #c73a7a); }
-        .btn-female:hover:not(:disabled) { background: linear-gradient(135deg, #c73a7a, #a82d65); transform: scale(1.02); }
-        
+
+        .btn-male { background: linear-gradient(135deg, #7eb8da, #5a9bc7); }
+        .btn-male:hover:not(:disabled) { background: linear-gradient(135deg, #5a9bc7, #4a85b0); transform: scale(1.02); }
+
+        .btn-female { background: linear-gradient(135deg, #e8a0bf, #d4809e); }
+        .btn-female:hover:not(:disabled) { background: linear-gradient(135deg, #d4809e, #c06a8a); transform: scale(1.02); }
+
         .board-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 16px;
+            flex-wrap: wrap;
+            gap: 10px;
         }
-        
+
         .board-header h2 {
             font-size: 1.2rem;
-            color: #555;
+            color: #8b6f47;
         }
-        
-        .clear-btn {
-            background: #ff6b6b;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 8px;
+
+        .header-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .header-btn {
+            background: white;
+            border: 1px solid #e0d5c8;
+            color: #8b6f47;
+            padding: 8px 14px;
+            border-radius: 10px;
             cursor: pointer;
             font-size: 0.85rem;
-            transition: background 0.2s;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }
-        
-        .clear-btn:hover { background: #ee5a5a; }
-        .clear-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        
+
+        .header-btn:hover { background: #faf6f1; border-color: #c4b5a5; }
+        .header-btn.active { background: #8b6f47; color: white; border-color: #8b6f47; }
+        .header-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .stats {
+            text-align: center;
+            margin-bottom: 16px;
+            color: #a09080;
+            font-size: 0.9rem;
+        }
+
         .notes-list {
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 14px;
         }
-        
+
         .note-item {
             background: white;
-            border-radius: 14px;
+            border-radius: 18px;
             padding: 18px 20px;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+            box-shadow: 0 3px 16px rgba(139,111,71,0.06);
             position: relative;
-            animation: slideIn 0.3s ease;
-            transition: transform 0.2s;
+            animation: slideIn 0.4s ease;
+            transition: all 0.2s;
         }
-        
-        .note-item:hover { transform: translateX(4px); }
-        
+
+        .note-item:hover { transform: translateX(4px) translateY(-1px); box-shadow: 0 5px 20px rgba(139,111,71,0.1); }
+
         @keyframes slideIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+            from { opacity: 0; transform: translateY(20px) rotate(-1deg); }
+            to { opacity: 1; transform: translateY(0) rotate(0deg); }
         }
-        
-        .note-item.male { border-left: 5px solid #4a90e2; }
-        .note-item.female { border-left: 5px solid #e24a90; }
-        
+
+        .note-item.male { 
+            border-left: 5px solid #7eb8da; 
+            background: linear-gradient(to right, #f8fbfd 0%, white 30%);
+        }
+        .note-item.female { 
+            border-left: 5px solid #e8a0bf; 
+            background: linear-gradient(to right, #fdf8fa 0%, white 30%);
+        }
+
+        .note-item.pinned {
+            border: 2px dashed #d4c4a8;
+            background: linear-gradient(135deg, #fffdf8 0%, #fff 100%);
+        }
+
+        .note-item.pinned::before {
+            content: "📌";
+            position: absolute;
+            top: -10px;
+            right: 20px;
+            font-size: 1.4rem;
+            transform: rotate(15deg);
+            filter: drop-shadow(0 2px 2px rgba(0,0,0,0.1));
+        }
+
+        .note-item.done {
+            opacity: 0.7;
+        }
+
+        .note-item.done .note-text {
+            text-decoration: line-through;
+            color: #999;
+        }
+
+        .note-item.deleted {
+            opacity: 0.5;
+            background: #f5f0eb;
+        }
+
         .note-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 8px;
         }
-        
+
         .note-author {
             font-weight: 700;
             font-size: 0.95rem;
@@ -198,58 +280,117 @@ html_content = '''<!DOCTYPE html>
             align-items: center;
             gap: 6px;
         }
-        
-        .note-item.male .note-author { color: #4a90e2; }
-        .note-item.female .note-author { color: #e24a90; }
-        
+
+        .note-item.male .note-author { color: #5a9bc7; }
+        .note-item.female .note-author { color: #d4809e; }
+
+        .note-meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
         .note-time {
             font-size: 0.75rem;
-            color: #999;
+            color: #b8a08a;
         }
-        
+
+        .read-badge {
+            font-size: 0.7rem;
+            color: #b8a08a;
+            display: flex;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .read-badge.read {
+            color: #52c41a;
+        }
+
         .note-text {
-            color: #444;
-            line-height: 1.6;
-            font-size: 1rem;
+            color: #5a4a3a;
+            line-height: 1.7;
+            font-size: 1.05rem;
             white-space: pre-wrap;
             word-break: break-word;
+            margin-bottom: 12px;
         }
-        
-        .note-delete {
-            position: absolute;
-            top: 12px;
-            right: 12px;
+
+        .note-emoji {
+            font-size: 1.6rem;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+
+        .note-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 10px;
+            border-top: 1px dashed #ece5dc;
+        }
+
+        .note-actions-left, .note-actions-right {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .action-btn {
             background: none;
             border: none;
-            color: #ccc;
             cursor: pointer;
-            font-size: 1.2rem;
+            font-size: 1rem;
             padding: 4px 8px;
-            border-radius: 6px;
+            border-radius: 8px;
             transition: all 0.2s;
+            color: #b8a08a;
+            display: flex;
+            align-items: center;
+            gap: 3px;
         }
-        
-        .note-delete:hover { color: #ff6b6b; background: #fff0f0; }
-        
+
+        .action-btn:hover { background: #f5f0eb; }
+
+        .action-btn.heart-btn:hover { background: #fff0f0; color: #ff6b6b; }
+        .action-btn.heart-btn.active { color: #ff6b6b; }
+        .action-btn.heart-btn.active:hover { background: #fff0f0; }
+
+        .action-btn.pin-btn:hover { background: #fff8e6; color: #faad14; }
+        .action-btn.pin-btn.active { color: #faad14; }
+
+        .action-btn.done-btn:hover { background: #f0f9eb; color: #52c41a; }
+        .action-btn.done-btn.active { color: #52c41a; }
+
+        .action-btn.delete-btn:hover { background: #fff0f0; color: #ff6b6b; }
+        .action-btn.restore-btn:hover { background: #f0f9eb; color: #52c41a; }
+        .action-btn.perm-delete-btn:hover { background: #fff0f0; color: #ff4d4f; }
+
+        .heart-float {
+            position: absolute;
+            pointer-events: none;
+            animation: floatUp 1s ease-out forwards;
+            font-size: 1.5rem;
+            z-index: 100;
+        }
+
+        @keyframes floatUp {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-40px) scale(1.5); }
+        }
+
         .empty-state {
             text-align: center;
             padding: 60px 20px;
-            color: #aaa;
+            color: #c4b5a5;
         }
-        
-        .empty-state .icon { font-size: 3rem; margin-bottom: 12px; }
-        
-        .stats {
-            text-align: center;
-            margin-bottom: 16px;
-            color: #888;
-            font-size: 0.9rem;
-        }
-        
+
+        .empty-state .big-icon { font-size: 3.5rem; margin-bottom: 12px; }
+
         .loading-overlay {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(255,255,255,0.9);
+            background: rgba(250,246,241,0.95);
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -257,78 +398,131 @@ html_content = '''<!DOCTYPE html>
             z-index: 1000;
             transition: opacity 0.3s;
         }
-        
+
         .loading-overlay.hidden { opacity: 0; pointer-events: none; }
-        
+
         .spinner {
             width: 40px;
             height: 40px;
-            border: 3px solid #e8e8e8;
-            border-top-color: #4a90e2;
+            border: 3px solid #ece5dc;
+            border-top-color: #d4809e;
             border-radius: 50%;
             animation: spin 1s linear infinite;
             margin-bottom: 12px;
         }
-        
+
         @keyframes spin { to { transform: rotate(360deg); } }
+
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #5a4a3a;
+            color: white;
+            padding: 10px 24px;
+            border-radius: 30px;
+            font-size: 0.9rem;
+            z-index: 2000;
+            opacity: 0;
+            transition: all 0.3s ease;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
     </style>
+<base target="_blank">
 </head>
 <body>
     <div class="loading-overlay" id="loadingOverlay">
         <div class="spinner"></div>
-        <p>正在连接云端...</p>
+        <p style="color: #8b6f47;">正在连接我们的小黑板...</p>
     </div>
-    
+
     <div class="container">
-        <h1>📝 双人云端记事板</h1>
-        
+        <h1>💕 我们的小黑板</h1>
+        <p class="subtitle">写下想对 TA 说的话，秒同步到对方屏幕</p>
+
         <div class="status-bar" id="statusBar">
             <span class="dot" id="statusDot"></span>
             <span id="statusText">正在连接...</span>
         </div>
-        
+
         <div class="input-area">
             <div class="input-card male">
-                <h3><span class="icon">👨</span>男生留言</h3>
-                <textarea id="maleInput" placeholder="写下你想记录的事情..."></textarea>
-                <button class="btn btn-male" id="maleBtn" onclick="addNote('male')">发送</button>
+                <h3><span class="icon">👦</span>男生留言</h3>
+                <div class="emoji-picker" id="maleEmojiPicker">
+                    <button class="emoji-btn" data-emoji="" onclick="selectEmoji('male', '')">✏️</button>
+                    <button class="emoji-btn" data-emoji="❤️" onclick="selectEmoji('male', '❤️')">❤️</button>
+                    <button class="emoji-btn" data-emoji="🌙" onclick="selectEmoji('male', '🌙')">🌙</button>
+                    <button class="emoji-btn" data-emoji="✨" onclick="selectEmoji('male', '✨')">✨</button>
+                    <button class="emoji-btn" data-emoji="🌸" onclick="selectEmoji('male', '🌸')">🌸</button>
+                    <button class="emoji-btn" data-emoji="🍰" onclick="selectEmoji('male', '🍰')">🍰</button>
+                    <button class="emoji-btn" data-emoji="🎁" onclick="selectEmoji('male', '🎁')">🎁</button>
+                </div>
+                <textarea id="maleInput" placeholder="想对宝贝说什么..."></textarea>
+                <button class="btn btn-male" id="maleBtn" onclick="addNote('male')">💌 发送给 TA</button>
             </div>
-            
+
             <div class="input-card female">
-                <h3><span class="icon">👩</span>女生留言</h3>
-                <textarea id="femaleInput" placeholder="写下你想记录的事情..."></textarea>
-                <button class="btn btn-female" id="femaleBtn" onclick="addNote('female')">发送</button>
+                <h3><span class="icon">👧</span>女生留言</h3>
+                <div class="emoji-picker" id="femaleEmojiPicker">
+                    <button class="emoji-btn" data-emoji="" onclick="selectEmoji('female', '')">✏️</button>
+                    <button class="emoji-btn" data-emoji="❤️" onclick="selectEmoji('female', '❤️')">❤️</button>
+                    <button class="emoji-btn" data-emoji="🌙" onclick="selectEmoji('female', '🌙')">🌙</button>
+                    <button class="emoji-btn" data-emoji="✨" onclick="selectEmoji('female', '✨')">✨</button>
+                    <button class="emoji-btn" data-emoji="🌸" onclick="selectEmoji('female', '🌸')">🌸</button>
+                    <button class="emoji-btn" data-emoji="🍰" onclick="selectEmoji('female', '🍰')">🍰</button>
+                    <button class="emoji-btn" data-emoji="🎁" onclick="selectEmoji('female', '🎁')">🎁</button>
+                </div>
+                <textarea id="femaleInput" placeholder="想对笨蛋说什么..."></textarea>
+                <button class="btn btn-female" id="femaleBtn" onclick="addNote('female')">💌 发送给 TA</button>
             </div>
         </div>
-        
+
         <div class="board-header">
-            <h2>📋 记录列表</h2>
-            <button class="clear-btn" id="clearBtn" onclick="clearAll()">清空全部</button>
+            <h2 id="boardTitle">📋 我们的便签</h2>
+            <div class="header-actions">
+                <button class="header-btn" id="memoryBtn" onclick="toggleMemoryBox()">
+                    <span>📦</span> 回忆箱
+                </button>
+                <button class="header-btn" id="clearBtn" onclick="clearAll()">
+                    <span>🗑️</span> 清空
+                </button>
+            </div>
         </div>
-        
+
         <div class="stats" id="stats"></div>
-        
+
         <div class="notes-list" id="notesList">
             <div class="empty-state">
-                <div class="icon">📭</div>
-                <p>还没有记录，快写点什么吧~</p>
+                <div class="big-icon">📭</div>
+                <p>小黑板还是空的，快贴第一张便签吧~</p>
             </div>
         </div>
     </div>
+
+    <div class="toast" id="toast"></div>
 
     <script>
         // ========================
         // 第 1 步：填入你的 Supabase 配置
         // ========================
-        const SUPABASE_URL = 'https://YOUR_PROJECT_ID.supabase.co';
-        const SUPABASE_KEY = 'YOUR_ANON_PUBLIC_KEY';
-        
+        const SUPABASE_URL = 'https://fintknavydorpvfuyyfn.supabase.co';
+        const SUPABASE_KEY = 'sb_secret_9MnHIQzI4cStPbKJGlei7A_mVrtL5S6';
+
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        
+
         let isConnected = false;
         let allNotes = [];
-        let pollTimer = null;
-        
+        let selectedEmojis = { male: '', female: '' };
+        let showMemoryBox = false;
+        let currentGender = null; // 当前正在浏览的性别视角（可选，用于已读标记）
+
         // ========================
         // 状态管理
         // ========================
@@ -338,209 +532,502 @@ html_content = '''<!DOCTYPE html>
             dot.className = 'dot ' + type;
             txt.textContent = text;
             isConnected = (type === 'connected');
-            
-            const btns = document.querySelectorAll('.btn, .clear-btn');
-            btns.forEach(btn => btn.disabled = !isConnected);
+
+            const btns = document.querySelectorAll('.btn, .header-btn');
+            btns.forEach(btn => {
+                if (btn.id !== 'memoryBtn') btn.disabled = !isConnected;
+            });
         }
-        
+
         function hideLoading() {
             document.getElementById('loadingOverlay').classList.add('hidden');
         }
-        
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2000);
+        }
+
         // ========================
-        // 从云端拉取数据（轮询）
+        // 表情选择
+        // ========================
+        function selectEmoji(gender, emoji) {
+            selectedEmojis[gender] = emoji;
+            const picker = document.getElementById(gender + 'EmojiPicker');
+            picker.querySelectorAll('.emoji-btn').forEach(btn => {
+                btn.classList.toggle('selected', btn.dataset.emoji === emoji);
+            });
+        }
+
+        // 默认选中第一个（✏️）
+        selectEmoji('male', '');
+        selectEmoji('female', '');
+
+        // ========================
+        // 从云端拉取数据
         // ========================
         async function fetchNotes() {
             try {
                 const { data, error } = await supabase
-                    .from('notes')
+                    .from('notepad')
                     .select('*')
+                    .order('is_pinned', { ascending: false })
                     .order('created_at', { ascending: false })
-                    .limit(100);
-                
+                    .limit(200);
+
                 if (error) throw error;
-                
-                allNotes = (data || []).map(item => ({
-                    id: item.id,
-                    gender: item.gender,
-                    text: item.text,
-                    time: item.time
-                }));
-                
+
+                allNotes = data || [];
                 renderNotes(allNotes);
-                setStatus('connected', '已连接云端 · 自动同步中');
+                setStatus('connected', '已连接 · 实时同步中 💕');
+
+                // 标记已读（新消息）
+                markUnreadAsRead();
             } catch (err) {
                 console.error('拉取失败:', err);
                 setStatus('error', '同步失败: ' + (err.message || '网络异常'));
             }
         }
-        
+
+        // ========================
+        // 实时订阅（Realtime）
+        // ========================
+        function subscribeRealtime() {
+            const channel = supabase
+                .channel('notepad_changes')
+                .on('postgres_changes', 
+                    { event: '*', schema: 'public', table: 'notepad' },
+                    (payload) => {
+                        console.log('Realtime 收到更新:', payload);
+                        fetchNotes();
+
+                        // 如果是新插入且不是当前用户发的，提示一下
+                        if (payload.eventType === 'INSERT' && payload.new) {
+                            const gender = payload.new.gender;
+                            const other = gender === 'male' ? '👦 男生' : '👧 女生';
+                            showToast(other + ' 贴了新便签！');
+                        }
+                    }
+                )
+                .subscribe((status) => {
+                    if (status === 'SUBSCRIBED') {
+                        console.log('Realtime 订阅成功');
+                    }
+                });
+        }
+
+        // ========================
+        // 标记已读
+        // ========================
+        async function markUnreadAsRead() {
+            if (!currentGender) return;
+
+            const unreadNotes = allNotes.filter(n => 
+                !n.is_deleted && 
+                n.gender !== currentGender && 
+                (!n.read_by || !n.read_by.includes(currentGender))
+            );
+
+            for (const note of unreadNotes) {
+                const newReadBy = [...(note.read_by || [])];
+                if (!newReadBy.includes(currentGender)) {
+                    newReadBy.push(currentGender);
+                }
+
+                try {
+                    await supabase
+                        .from('notepad')
+                        .update({ read_by: newReadBy })
+                        .eq('id', note.id);
+                } catch (e) {
+                    // 静默失败
+                }
+            }
+        }
+
         // ========================
         // 初始化
         // ========================
         async function init() {
             try {
                 await fetchNotes();
+                subscribeRealtime();
                 hideLoading();
-                // 每 5 秒自动同步一次
-                pollTimer = setInterval(fetchNotes, 5000);
             } catch (err) {
                 setStatus('error', '连接失败: ' + (err.message || '请检查配置'));
                 hideLoading();
             }
         }
-        
+
         // ========================
         // 添加记录
         // ========================
         async function addNote(gender) {
             if (!isConnected) return;
-            
+
             const inputId = gender === 'male' ? 'maleInput' : 'femaleInput';
             const textarea = document.getElementById(inputId);
             const text = textarea.value.trim();
-            
+            const emoji = selectedEmojis[gender];
+
             if (!text) {
                 textarea.style.borderColor = '#ff6b6b';
                 setTimeout(() => textarea.style.borderColor = '', 300);
                 return;
             }
-            
+
             const btn = document.getElementById(gender === 'male' ? 'maleBtn' : 'femaleBtn');
             btn.disabled = true;
             btn.textContent = '发送中...';
-            
+
             try {
                 const { error } = await supabase
-                    .from('notes')
+                    .from('notepad')
                     .insert([{
                         gender: gender,
                         text: text,
-                        time: new Date().toLocaleString('zh-CN', {
-                            month: 'short', day: 'numeric',
-                            hour: '2-digit', minute: '2-digit'
-                        })
+                        emoji: emoji,
+                        is_done: false,
+                        is_pinned: false,
+                        hearts: 0,
+                        hearted_by: [],
+                        read_by: [gender],
+                        is_deleted: false
                     }]);
-                
+
                 if (error) throw error;
-                
+
                 textarea.value = '';
-                await fetchNotes(); // 立即刷新
+                selectEmoji(gender, '');
+                showToast('便签已贴上 💌');
             } catch (err) {
                 alert('发送失败: ' + (err.message || '请检查网络'));
             } finally {
                 btn.disabled = false;
-                btn.textContent = '发送';
+                btn.textContent = '💌 发送给 TA';
             }
         }
-        
+
         // ========================
-        // 删除单条
+        // 完成勾选
         // ========================
-        async function deleteNote(id) {
+        async function toggleDone(id, current) {
             if (!isConnected) return;
-            if (!confirm('确定要删除这条记录吗？')) return;
-            
+
             try {
                 const { error } = await supabase
-                    .from('notes')
-                    .delete()
+                    .from('notepad')
+                    .update({ is_done: !current })
                     .eq('id', id);
-                
+
                 if (error) throw error;
-                await fetchNotes();
+            } catch (err) {
+                alert('操作失败: ' + (err.message || '请检查网络'));
+            }
+        }
+
+        // ========================
+        // 置顶
+        // ========================
+        async function togglePin(id, current) {
+            if (!isConnected) return;
+
+            try {
+                const { error } = await supabase
+                    .from('notepad')
+                    .update({ is_pinned: !current })
+                    .eq('id', id);
+
+                if (error) throw error;
+                showToast(current ? '已取消置顶' : '已置顶 📌');
+            } catch (err) {
+                alert('操作失败: ' + (err.message || '请检查网络'));
+            }
+        }
+
+        // ========================
+        // 爱心
+        // ========================
+        async function toggleHeart(id, note, btnEl) {
+            if (!isConnected) return;
+            if (!currentGender) {
+                showToast('请先点击自己是男生还是女生');
+                return;
+            }
+
+            const heartedBy = note.hearted_by || [];
+            const hasHearted = heartedBy.includes(currentGender);
+            const newHeartedBy = hasHearted 
+                ? heartedBy.filter(g => g !== currentGender)
+                : [...heartedBy, currentGender];
+
+            // 飘爱心动画
+            if (!hasHearted && btnEl) {
+                const float = document.createElement('span');
+                float.className = 'heart-float';
+                float.textContent = '❤️';
+                float.style.left = btnEl.getBoundingClientRect().left + 'px';
+                float.style.top = btnEl.getBoundingClientRect().top + 'px';
+                document.body.appendChild(float);
+                setTimeout(() => float.remove(), 1000);
+            }
+
+            try {
+                const { error } = await supabase
+                    .from('notepad')
+                    .update({ 
+                        hearts: newHeartedBy.length,
+                        hearted_by: newHeartedBy 
+                    })
+                    .eq('id', id);
+
+                if (error) throw error;
+            } catch (err) {
+                alert('操作失败: ' + (err.message || '请检查网络'));
+            }
+        }
+
+        // ========================
+        // 软删除（移入回忆箱）
+        // ========================
+        async function softDelete(id) {
+            if (!isConnected) return;
+            if (!confirm('确定把这条便签移入回忆箱吗？')) return;
+
+            try {
+                const { error } = await supabase
+                    .from('notepad')
+                    .update({ is_deleted: true })
+                    .eq('id', id);
+
+                if (error) throw error;
+                showToast('已移入回忆箱 📦');
             } catch (err) {
                 alert('删除失败: ' + (err.message || '请检查网络'));
             }
         }
-        
+
         // ========================
-        // 清空全部
+        // 恢复
+        // ========================
+        async function restoreNote(id) {
+            if (!isConnected) return;
+
+            try {
+                const { error } = await supabase
+                    .from('notepad')
+                    .update({ is_deleted: false })
+                    .eq('id', id);
+
+                if (error) throw error;
+                showToast('便签已恢复 ✨');
+            } catch (err) {
+                alert('恢复失败: ' + (err.message || '请检查网络'));
+            }
+        }
+
+        // ========================
+        // 彻底删除
+        // ========================
+        async function permDelete(id) {
+            if (!isConnected) return;
+            if (!confirm('确定彻底删除？此操作不可恢复！')) return;
+
+            try {
+                const { error } = await supabase
+                    .from('notepad')
+                    .delete()
+                    .eq('id', id);
+
+                if (error) throw error;
+                showToast('已彻底删除');
+            } catch (err) {
+                alert('删除失败: ' + (err.message || '请检查网络'));
+            }
+        }
+
+        // ========================
+        // 回忆箱切换
+        // ========================
+        function toggleMemoryBox() {
+            showMemoryBox = !showMemoryBox;
+            const btn = document.getElementById('memoryBtn');
+            const title = document.getElementById('boardTitle');
+
+            btn.classList.toggle('active', showMemoryBox);
+            title.textContent = showMemoryBox ? '📦 回忆箱' : '📋 我们的便签';
+
+            renderNotes(allNotes);
+        }
+
+        // ========================
+        // 清空全部（软删除）
         // ========================
         async function clearAll() {
             if (!isConnected) return;
-            if (allNotes.length === 0) return;
-            
-            if (!confirm(`确定要清空全部 ${allNotes.length} 条记录吗？此操作不可恢复！`)) return;
-            
+
+            const targetNotes = showMemoryBox 
+                ? allNotes.filter(n => n.is_deleted)
+                : allNotes.filter(n => !n.is_deleted);
+
+            if (targetNotes.length === 0) return;
+
+            const msg = showMemoryBox 
+                ? `确定彻底删除回忆箱中 ${targetNotes.length} 条便签吗？不可恢复！`
+                : `确定把 ${targetNotes.length} 条便签移入回忆箱吗？`;
+
+            if (!confirm(msg)) return;
+
             const btn = document.getElementById('clearBtn');
             btn.disabled = true;
-            btn.textContent = '清空中...';
-            
+            btn.innerHTML = '<span>⏳</span> 处理中...';
+
             try {
-                // 逐条删除（Supabase 免费版批量删除限制较少，但逐条更稳）
-                for (const note of allNotes) {
-                    await supabase.from('notes').delete().eq('id', note.id);
+                if (showMemoryBox) {
+                    // 彻底删除
+                    for (const note of targetNotes) {
+                        await supabase.from('notepad').delete().eq('id', note.id);
+                    }
+                    showToast('回忆箱已清空');
+                } else {
+                    // 批量软删除
+                    for (const note of targetNotes) {
+                        await supabase.from('notepad').update({ is_deleted: true }).eq('id', note.id);
+                    }
+                    showToast(`已移入回忆箱 📦`);
                 }
-                await fetchNotes();
             } catch (err) {
-                alert('清空失败: ' + (err.message || '请检查网络'));
+                alert('操作失败: ' + (err.message || '请检查网络'));
             } finally {
                 btn.disabled = false;
-                btn.textContent = '清空全部';
+                btn.innerHTML = '<span>🗑️</span> 清空';
             }
         }
-        
+
         // ========================
         // 渲染列表
         // ========================
         function renderNotes(notes) {
             const list = document.getElementById('notesList');
             const stats = document.getElementById('stats');
-            
-            const maleCount = notes.filter(n => n.gender === 'male').length;
-            const femaleCount = notes.filter(n => n.gender === 'female').length;
-            
-            stats.textContent = notes.length > 0
-                ? `共 ${notes.length} 条 · 👨 ${maleCount} 条 · 👩 ${femaleCount} 条`
+
+            const filtered = notes.filter(n => showMemoryBox ? n.is_deleted : !n.is_deleted);
+
+            const maleCount = filtered.filter(n => n.gender === 'male').length;
+            const femaleCount = filtered.filter(n => n.gender === 'female').length;
+            const doneCount = filtered.filter(n => n.is_done).length;
+
+            stats.textContent = filtered.length > 0
+                ? `共 ${filtered.length} 条 · 👦 ${maleCount} · 👧 ${femaleCount} · ✅ ${doneCount} 已完成`
                 : '';
-            
-            if (!notes.length) {
+
+            if (!filtered.length) {
                 list.innerHTML = `
                     <div class="empty-state">
-                        <div class="icon">📭</div>
-                        <p>还没有记录，快写点什么吧~</p>
+                        <div class="big-icon">${showMemoryBox ? '📦' : '📭'}</div>
+                        <p>${showMemoryBox ? '回忆箱是空的，删掉的便签会出现在这里~' : '小黑板还是空的，快贴第一张便签吧~'}</p>
                     </div>
                 `;
                 return;
             }
-            
-            list.innerHTML = notes.map(note => {
+
+            list.innerHTML = filtered.map(note => {
                 const isMale = note.gender === 'male';
+                const isPinned = note.is_pinned;
+                const isDone = note.is_done;
+                const isDeleted = note.is_deleted;
+
+                const heartedBy = note.hearted_by || [];
+                const readBy = note.read_by || [];
+                const hasHearted = currentGender ? heartedBy.includes(currentGender) : false;
+                const isReadByOther = readBy.includes(isMale ? 'female' : 'male');
+
+                const timeStr = new Date(note.created_at).toLocaleString('zh-CN', {
+                    month: 'short', day: 'numeric',
+                    hour: '2-digit', minute: '2-digit'
+                });
+
+                let actionsHtml = '';
+                if (isDeleted) {
+                    actionsHtml = `
+                        <button class="action-btn restore-btn" onclick="restoreNote('${note.id}')">↩️ 恢复</button>
+                        <button class="action-btn perm-delete-btn" onclick="permDelete('${note.id}')">🗑️ 彻底删除</button>
+                    `;
+                } else {
+                    actionsHtml = `
+                        <button class="action-btn done-btn ${isDone ? 'active' : ''}" onclick="toggleDone('${note.id}', ${isDone})">
+                            ${isDone ? '✅' : '⬜'} ${isDone ? '已完成' : '完成'}
+                        </button>
+                        <button class="action-btn pin-btn ${isPinned ? 'active' : ''}" onclick="togglePin('${note.id}', ${isPinned})">
+                            📌 ${isPinned ? '已置顶' : '置顶'}
+                        </button>
+                        <button class="action-btn heart-btn ${hasHearted ? 'active' : ''}" onclick="toggleHeart('${note.id}', ${JSON.stringify(note).replace(/"/g, '&quot;')}, this)">
+                            ❤️ ${note.hearts || 0}
+                        </button>
+                        <button class="action-btn delete-btn" onclick="softDelete('${note.id}')">🗑️ 删除</button>
+                    `;
+                }
+
                 return `
-                    <div class="note-item ${note.gender}">
-                        <button class="note-delete" onclick="deleteNote('${note.id}')">×</button>
+                    <div class="note-item ${note.gender} ${isPinned ? 'pinned' : ''} ${isDone ? 'done' : ''} ${isDeleted ? 'deleted' : ''}">
                         <div class="note-header">
                             <span class="note-author">
-                                ${isMale ? '👨' : '👩'} ${isMale ? '男生' : '女生'}
+                                ${isMale ? '👦' : '👧'} ${isMale ? '男生' : '女生'}
+                                ${note.emoji ? '<span style="margin-left:4px;">' + note.emoji + '</span>' : ''}
                             </span>
-                            <span class="note-time">${note.time}</span>
+                            <div class="note-meta">
+                                <span class="note-time">${timeStr}</span>
+                                ${!isDeleted ? `
+                                    <span class="read-badge ${isReadByOther ? 'read' : ''}">
+                                        ${isReadByOther ? '👁️ 已读' : '👁️ 未读'}
+                                    </span>
+                                ` : ''}
+                            </div>
                         </div>
                         <div class="note-text">${escapeHtml(note.text)}</div>
+                        <div class="note-actions">
+                            <div class="note-actions-left">
+                                ${actionsHtml}
+                            </div>
+                        </div>
                     </div>
                 `;
             }).join('');
         }
-        
+
         function escapeHtml(text) {
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
         }
-        
-        // 快捷键
+
+        // ========================
+        // 快捷键 & 视角选择
+        // ========================
         document.getElementById('maleInput').addEventListener('keydown', function(e) {
-            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') addNote('male');
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                currentGender = 'male';
+                addNote('male');
+            }
         });
         document.getElementById('femaleInput').addEventListener('keydown', function(e) {
-            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') addNote('female');
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                currentGender = 'female';
+                addNote('female');
+            }
         });
-        
+
+        // 点击输入框时设定当前视角
+        document.getElementById('maleInput').addEventListener('focus', () => currentGender = 'male');
+        document.getElementById('femaleInput').addEventListener('focus', () => currentGender = 'female');
+
         // 启动
         init();
     </script>
 </body>
-</html>'''
+</html>
 
 with open('/mnt/agents/output/notepad_supabase.html', 'w', encoding='utf-8') as f:
     f.write(html_content)
